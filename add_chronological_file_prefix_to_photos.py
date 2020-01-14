@@ -26,14 +26,14 @@ def do_rename(oldname, newname):
   if options.dryrun:
     print("Simulated rename of", oldname, "to", newname)
   else:
-    print("Renaming ", oldname, " to ", newname, ".")
+    print("Renaming", oldname, "to", newname)
     os.rename(oldname, newname)
 
 def get_new_filename(orig_fname, y, m, d):
   album_name = "_%s" % options.album if options.album is not None else ""
   return "%s-%s-%s%s_%s" % (y, m, d, album_name, orig_fname)
 
-already_renamed_file_pattern = re.compile('20\d\d-\d{2}-\d{2}_.*\.jpg')
+already_renamed_file_pattern = re.compile('20\d\d-\d{2}-\d{2}_.*\..*')
 def should_skip_file(fname):
   """
   If a file already matches 20YY-MM-DD_text.jpg then we don't need to 

@@ -128,7 +128,7 @@ def main(argv):
 
   for fname in args:
     if should_skip_file(fname):
-      print("Skipping [", fname, "]. Already has YYYY-MM-DD_*.jpg format.")
+      print("Skipping [", fname, "]. Already has YYYY-MM-DD_*. format.")
     # TODO: delete this cruft
     #elif process_using_exif_data(fname):
     #  pass

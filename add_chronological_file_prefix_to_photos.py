@@ -44,6 +44,8 @@ def should_skip_file(fname):
 
 
 DATETIME_REGEX = '(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})'
+
+
 exif_timestamp_pattern = re.compile(DATETIME_REGEX)
 DATETIME_KEY = 'Image DateTime'
 # *.heif files seem to have this one
@@ -62,7 +64,7 @@ def process_using_exif_data(fname):
     datestr = tags[DATETIME_ORIG_KEY]
     print("CASE 2 fname=", fname)
   else:
-    print ("Exif Method won't work for [", fname, "]. keys=", tags.keys())
+    # print ("Exif Method won't work for [", fname, "]. keys=", tags.keys())
     return False
 
   match = exif_timestamp_pattern.match(datestr.printable)
@@ -92,6 +94,7 @@ def process_using_android_file_naming_convention(fname):
     return False
 
 def process_using_imagemagick_exif(fname):
+  # TODO: use a helper function to reduce code duplication here...
   out = subprocess.Popen(['identify', '-format', '%[EXIF:DateTimeOriginal*]', fname], 
            stdout=subprocess.PIPE, 
            stderr=subprocess.STDOUT)
@@ -99,16 +102,33 @@ def process_using_imagemagick_exif(fname):
   tomatch = stdout.decode('ascii').strip()
   imagemagick_output_regex = re.compile('exif:DateTimeOriginal=' + DATETIME_REGEX)
   match = imagemagick_output_regex.match(tomatch)
-  if match is None:
-    print ("WHAT?!?!?!")
-    sys.exit(1)
+  if match is not None:
+    y = match.group(1)
+    m = match.group(2)
+    d = match.group(3)
+    do_rename(fname, get_new_filename(fname, y, m, d))
+    return True
 
-  y = match.group(1)
-  m = match.group(2)
-  d = match.group(3)
+  # Case 2
+  out = subprocess.Popen(['identify', '-format', '%[date:modify*]'     , fname], 
+           stdout=subprocess.PIPE, 
+           stderr=subprocess.STDOUT)
+  stdout, stderr = out.communicate()
+  tomatch = stdout.decode('ascii').strip()
+  # Okay format here is, for example, 2019-06-11T04:04:12+00:00
+  imagemagick_output_regex = re.compile('date:modify=(\d{4})-(\d{2})-(\d{2})T.*')
+  match = imagemagick_output_regex.match(tomatch)
+  if match is not None:
+    y = match.group(1)
+    m = match.group(2)
+    d = match.group(3)
+    do_rename(fname, get_new_filename(fname, y, m, d))
+    return True
 
-  do_rename(fname, get_new_filename(fname, y, m, d))
-  return True
+  # Case 3
+  print ("Imagemagick failed on fname=", fname)
+  return False
+
 
 def main(argv):
   parser = OptionParser()
@@ -130,8 +150,8 @@ def main(argv):
     if should_skip_file(fname):
       print("Skipping [", fname, "]. Already has YYYY-MM-DD_*. format.")
     # TODO: delete this cruft
-    #elif process_using_exif_data(fname):
-    #  pass
+    elif process_using_exif_data(fname):
+      pass
     #elif process_using_android_file_naming_convention(fname):
     #  pass
     elif process_using_imagemagick_exif(fname):
